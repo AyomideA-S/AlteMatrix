@@ -7,6 +7,7 @@ https://www.udemy.com/course/pratcical-ethical-hacking-for-beginners/?src=sac&kw
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <math.h>
 #include <getopt.h>
 #include "../versions.h"
@@ -30,6 +31,7 @@ int main(int argc, char *argv[]) {
     // for (int i = 0; i < argc; i++){
     //     printf("argv[%d]: %s\n", i, argv[i]);
     // }
+    FILE *file = NULL;
 
     char* ip = "";
     char* subnet = "";
@@ -38,6 +40,8 @@ int main(int argc, char *argv[]) {
     int mask = 0;
     int focal;
 
+    char filename[256];
+    int file_flag = 0;
     int opt;
 
     struct option longopts[] = {
@@ -50,7 +54,7 @@ int main(int argc, char *argv[]) {
         { 0, 0, NULL, 0 }
     };
 
-    while((opt = getopt_long(argc, argv, "hi:s:m:f::V", longopts, 0)) != -1 ){
+    while((opt = getopt_long(argc, argv, "hVi:s:m:f::", longopts, 0)) != -1 ){
         switch(opt){
         case 'h':
             print_usage(stdout, argv[0]);
@@ -65,12 +69,15 @@ int main(int argc, char *argv[]) {
             mask = atoi(optarg);
             break;
         case 'f':
+            strncpy(filename, (optarg) ? optarg : "ipanalysis.txt", sizeof (filename));
+            filename[sizeof(filename) - 1] = '\0';
+            file_flag = 1;
             break;
         case 'V':
             printf("AlteMatrix %s [Version %s %s]\n", IPv4.name, IPv4.version, IPv4.state);
             exit(EXIT_SUCCESS);
         default:
-            fprintf(stderr, "Usage: %s  [-h|--help] -i|--ip <IPv4_address> [-s|--subnet <subnet>] [-m|--mask <mask>] [-f|--file <filepath>] [-V|--version]\n", argv[0]);
+            fprintf(stderr, "Usage: %s  -i|--ip <IPv4_address> [-s|--subnet <subnet>] [-m|--mask <mask>] [-f\"<filepath>\"|--file=<filepath>] [-h|--help] [-V|--version]\n", argv[0]);
             exit(EXIT_FAILURE);
         }
     }
@@ -82,10 +89,6 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Expected argument after options\n");
         exit(EXIT_FAILURE);
     }
-
-    // for debugging purposes
-    // argc -= optind;
-    // argv += optind; 
 
     format_ip(ip, ipv4);
     if(subnet != "")
@@ -110,16 +113,29 @@ int main(int argc, char *argv[]) {
             exit(EXIT_FAILURE);
     }
 
-    present_ip(ip, ipv4);
+    if(filename){
+        file = fopen(filename, "w");
+
+        if(!file){
+            fprintf(stderr, "Error: File could not be created!");
+            exit(EXIT_FAILURE);
+        }
+    } else {file = stdout;}
+        
+
+    present_ip(ip, ipv4, file);
     if(subnet != "")
-        zero = present_subnet(subnet, subnets);
+        zero = present_subnet(subnet, subnets, file);
     if(mask)
-        present_mask(mask);
-    focal = summarize(ip, ipv4, subnets, zero);
+        present_mask(mask, file);
+    focal = summarize(ip, ipv4, subnets, zero, file);
     if(subnet != "")
-        yes_subnet(subnet, focal);
+        yes_subnet(subnet, focal, file);
     if(mask)
-        yes_mask(mask);
+        yes_mask(mask, file);
+
+    if(file)
+        fclose(file);
 
     exit(EXIT_SUCCESS);
 }

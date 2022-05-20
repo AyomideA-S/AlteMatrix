@@ -83,84 +83,84 @@ char get_class(int *ipv4) {
 
 
 // function to present the output in predefined format
-void present_ip(char* ip, int *ipv4){
+void present_ip(char* ip, int *ipv4, FILE *stream){
     char BINARY[9] = {0,0,0,0,0,0,0,0,'\0'};
 
     // plain ipv4 format
-    printf("\n %19s IPv4 %19s\n|", " "," ");
+    fprintf(stream, "\n %19s IPv4 %19s\n|", " "," ");
     for(int i = 0; i < 43; i++) {
-        printf("-");
+        fprintf(stream, "-");
     }
-    printf("|\n");
+    fprintf(stream, "|\n");
     for(int i = 1; i <= 4; i++) {
-        printf("| Octet %d  ", i);
+        fprintf(stream, "| Octet %d  ", i);
     }
-    printf("|\n");
+    fprintf(stream, "|\n");
     for(int i = 0; i < 4; i++) {
-        printf("|");
+        fprintf(stream, "|");
         for(int j = 0; j < 10; j++)
-        printf("-");
+        fprintf(stream, "-");
     }
-    printf("|\n");
+    fprintf(stream, "|\n");
     for(int i = 0; i < 4; i++) {
         int zero = 0;
         decimal_to_binary(i, ipv4[i], BINARY, zero);
-        printf("| %s ", BINARY);
+        fprintf(stream, "| %s ", BINARY);
     }
-    printf("|\n|");
+    fprintf(stream, "|\n|");
     for(int i = 0; i < 43; i++) {
-        printf("-");
+        fprintf(stream, "-");
     }
-    printf("|\n");
+    fprintf(stream, "|\n");
 }
 
 // subnet format
-int present_subnet(char *subnet, int *subnets){
+int present_subnet(char *subnet, int *subnets, FILE *stream){
     char BINARY[9] = {0,0,0,0,0,0,0,0,'\0'};
 
-    printf("%16s Subnet mask %16s\n", " "," ");
-    printf("|");
+    fprintf(stream, "%16s Subnet mask %16s\n", " "," ");
+    fprintf(stream, "|");
     for(int i = 0; i < 43; i++) {
-        printf("-");
+        fprintf(stream, "-");
     }
-    printf("|\n");
+    fprintf(stream, "|\n");
     for(int i = 1; i <= 4; i++) {
-        printf("| Octet %d  ", i);
+        fprintf(stream, "| Octet %d  ", i);
     }
-    printf("|\n");
+    fprintf(stream, "|\n");
     for(int i = 0; i < 4; i++) {
-        printf("|");
+        fprintf(stream, "|");
         for(int j = 0; j < 10; j++)
-        printf("-");
+        fprintf(stream, "-");
     }
-    printf("|\n");
+    fprintf(stream, "|\n");
     int zero = 4;
     for(int i = 0; i < 4; i++) {
         // index of the first octet with a "0" in the subnets array
         zero = decimal_to_binary(i, subnets[i], BINARY, zero);
-        printf("| %s ", BINARY);
+        fprintf(stream, "| %s ", BINARY);
     }
-    printf("|\n|");
+    fprintf(stream, "|\n|");
     for(int i = 0; i < 43; i++) {
-        printf("-");
+        fprintf(stream, "-");
     }
-    printf("|\n");
+    fprintf(stream, "|\n");
 
     return zero;
 }
 
 // subnet mask
-void present_mask(int mask){
-    printf("\nThis is a %d-bit subnet mask.\n", mask);
+void present_mask(int mask, FILE *stream){
+    fprintf(stream, "\nThis is a %d-bit subnet mask.\n", mask);
     int hosts = 32 - mask;
-    printf("Host Bits: %d\n", hosts);
+    fprintf(stream, "Host Bits: %d\n", hosts);
     int supported_hosts = pow(2, hosts) - 2;
-    printf("Number of supported Hosts: %d\n", supported_hosts);
-    printf("Total IPs: %d\n", supported_hosts+2);
+    fprintf(stream, "Number of supported Hosts: %d\n", supported_hosts);
+    fprintf(stream, "Total IPs: %d\n", supported_hosts+2);
 }
 
 // present the summary
-int summarize(char* ip, int *ipv4, int *subnets, int zero){
+int summarize(char* ip, int *ipv4, int *subnets, int zero, FILE *stream){
     char class;
     char alpha[16];
     char delta[16];
@@ -171,8 +171,8 @@ int summarize(char* ip, int *ipv4, int *subnets, int zero){
     if(zero != 4) {
         int most_significant_zero = subnets[zero];
         int size = 256 - most_significant_zero;
-        printf("Block Size: %d\n", size);
-        printf("Subnets: %d\n", 256 / size);
+        fprintf(stream, "Block Size: %d\n", size);
+        fprintf(stream, "Subnets: %d\n", 256 / size);
         
         for (int i = 0; i < 257; i += size) {
             if(i > ipv4[zero]) {
@@ -205,43 +205,46 @@ int summarize(char* ip, int *ipv4, int *subnets, int zero){
     }
     class = get_class(ipv4);
 
-    printf("\nSummary\n");
+    fprintf(stream, "\nSummary\n");
     for(int i = 0; i < 43; i++){
-        printf("-");
+        fprintf(stream, "-");
     }
     
-    printf("\nNetwork Address: %s\n", ip);
-    printf("Class: %c\n", class);
+    fprintf(stream, "\nNetwork Address: %s\n", ip);
+    fprintf(stream, "Class: %c\n", class);
 
     if(zero != 4){
-        printf("Directed Broadcast Address: %s\n", delta);
-        printf("IP Range: %s - %s\n", alpha, gamma);
+        fprintf(stream, "Directed Broadcast Address: %s\n", delta);
+        fprintf(stream, "IP Range: %s - %s\n", alpha, gamma);
     }
 
     return focal;
 }
 
 // subnet summary
-void yes_subnet(char *subnet, int focal){
-    printf("Subnet Address: %s\n", subnet);
-    printf("Wildcard Bits: 0.0.0.%d\n", focal - 1);
+void yes_subnet(char *subnet, int focal, FILE *stream){
+    fprintf(stream, "Subnet Address: %s\n", subnet);
+    fprintf(stream, "Wildcard Bits: 0.0.0.%d\n", focal - 1);
 }
 
 // mask summary
-void yes_mask(int mask){
-    printf("Subnet mask: %s\n", MASKS[mask - 1]);
+void yes_mask(int mask, FILE *stream){
+    fprintf(stream, "Subnet mask: %s\n", MASKS[mask - 1]);
 }
 
-void print_usage (FILE* stream, char *program_name)
+// print help
+void print_usage (FILE* stream, char *program_path)
 {
-  fprintf (stream, "Usage:  %s -i|--ip <IPv4_address> [OPTIONS] [-h|--help] [-s|--subnet <subnet>] [-m|--mask <mask>] [-f|--file <filepath>] [-V|--version]\n", program_name);
-  fprintf (stream,
-           "  -h  --help\t\t\t" "Display this usage information and exit.\n"
-           "  -i  --ip <IPv4_address>\t" "Takes IPv4 address.\n"
-           "  -s  --subnet <subnet>\t\t" "Takes IPv4 subnet address.\n"
-           "  -m  --mask <mask>\t\t" "Takes IPv4 subnet mask.\n"
-           "  -f  --file[=FILENAME]\t\t" "Write all output to a file (defaults to ipanalysis.txt).\n"
-           "  -V  --version\t\t\t"
-           "Display the program version.\n");
-  exit(EXIT_SUCCESS);
+    const char *program_name = strrchr(program_path, '/');
+    program_name = program_name ? program_name + 1 : program_path;
+    fprintf (stream, "Usage:  %s -i|--ip <IPv4_address> [OPTIONS]\n", program_name);
+    fprintf (stream,
+            "  -h  --help\t\t\t" "Display this usage information and exit.\n"
+            "  -i  --ip <IPv4_address>\t" "Takes IPv4 address.\n"
+            "  -s  --subnet <subnet>\t\t" "Takes IPv4 subnet address.\n"
+            "  -m  --mask <mask>\t\t" "Takes IPv4 subnet mask.\n"
+            "  -f  --file=[FILENAME]\t\t" "Write all output to a file (defaults to ipanalysis.txt).\n"
+            "  -V  --version\t\t\t"
+            "Display the program version.\n");
+    exit(EXIT_SUCCESS);
 }
