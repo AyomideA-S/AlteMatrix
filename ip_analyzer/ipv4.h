@@ -5,8 +5,12 @@ You can access the course at:
 https://www.udemy.com/course/pratcical-ethical-hacking-for-beginners/?src=sac&kw=Ethical+hacking+for+beginner
 */
 
+#include <stdlib.h>
+int subnet_flag = 0;
+int cidr_flag = -1;
+
 // array of subnet masks
-char *MASKS[32] = {"128.0.0.0", "192.0.0.0", "224.0.0.0", "240.0.0.0", "248.0.0.0", "252.0.0.0", "254.0.0.0", "255.0.0.0", 
+char *MASKS[33] = {"0.0.0.0", "128.0.0.0", "192.0.0.0", "224.0.0.0", "240.0.0.0", "248.0.0.0", "252.0.0.0", "254.0.0.0", "255.0.0.0", 
     "255.128.0.0", "255.192.0.0", "255.224.0.0", "255.240.0.0", "255.248.0.0", "255.252.0.0", "255.254.0.0", "255.255.0.0", 
     "255.255.128.0", "255.255.192.0", "255.255.224.0", "255.255.240.0", "255.255.248.0", "255.255.252.0", "255.255.254.0", 
     "255.255.255.0", "255.255.255.128", "255.255.255.192", "255.255.255.224", "255.255.255.240", "255.255.255.248", 
@@ -15,7 +19,7 @@ char *MASKS[32] = {"128.0.0.0", "192.0.0.0", "224.0.0.0", "240.0.0.0", "248.0.0.
 
 
 // function to validate user input
-int validate_input(int *ipv4, char *subnet, int *subnets, int mask) {
+int validate_input(int *ipv4, char *subnet, int *subnets, int cidr) {
     for(int i = 0; i < 4; i++) {
         if(ipv4[i] == -1)
             return 1;
@@ -34,10 +38,13 @@ int validate_input(int *ipv4, char *subnet, int *subnets, int mask) {
             if(subnets[i] > 255 || subnets[i] < 0)
                 return 100;
         }
+        subnet_flag = 1;
     }
     
-    if(mask)
-        if(mask > 32 || mask < 1) return 3;
+    if(cidr != -1){
+        if(cidr > 32 || cidr < 0) return 3;
+        cidr_flag = 1;
+    }
     return 0;
 }
 
@@ -149,10 +156,10 @@ int present_subnet(char *subnet, int *subnets, FILE *stream){
     return zero;
 }
 
-// subnet mask
-void present_mask(int mask, FILE *stream){
-    fprintf(stream, "\nThis is a %d-bit subnet mask.\n", mask);
-    int hosts = 32 - mask;
+// CIDR mask
+void present_cidr(int cidr, FILE *stream){
+    fprintf(stream, "\nThis is a %d-bit address block.\n", cidr);
+    int hosts = 32 - cidr;
     fprintf(stream, "Host Bits: %d\n", hosts);
     int supported_hosts = pow(2, hosts) - 2;
     fprintf(stream, "Number of supported Hosts: %d\n", supported_hosts);
@@ -225,11 +232,23 @@ int summarize(char* ip, int *ipv4, int *subnets, int zero, FILE *stream){
 void yes_subnet(char *subnet, int focal, FILE *stream){
     fprintf(stream, "Subnet Address: %s\n", subnet);
     fprintf(stream, "Wildcard Bits: 0.0.0.%d\n", focal - 1);
+    if(cidr_flag == -1){
+        int CIDR;
+        for(int i=32; i>=0; i--){
+            if(strcmp(subnet, MASKS[i]) <= 0)
+                CIDR = i;
+            else
+                break;
+        }
+        fprintf(stream, "Classless Inter-Domain Routing mask: /%d\n", CIDR);
+        fprintf(stream, "Subnet mask: %s\n", MASKS[CIDR - 1]);
+    }
 }
 
-// mask summary
-void yes_mask(int mask, FILE *stream){
-    fprintf(stream, "Subnet mask: %s\n", MASKS[mask - 1]);
+// CIDR summary
+void yes_cidr(int cidr, FILE *stream){
+    fprintf(stream, "Classless Inter-Domain Routing mask: /%d\n", cidr);
+    fprintf(stream, "Subnet mask: %s\n", MASKS[cidr - 1]);
 }
 
 // print help
@@ -242,7 +261,7 @@ void print_usage (FILE* stream, char *program_path)
             "  -h  --help\t\t\t" "Display this usage information and exit.\n"
             "  -i  --ip <IPv4_address>\t" "Takes IPv4 address.\n"
             "  -s  --subnet <subnet>\t\t" "Takes IPv4 subnet address.\n"
-            "  -m  --mask <mask>\t\t" "Takes IPv4 subnet mask.\n"
+            "  -c  --cidr <CIDR_mask>\t" "Takes IPv4 CIDR mask.\n"
             "  -f  --file=[FILENAME]\t\t" "Write all output to a file (defaults to ipanalysis.txt).\n"
             "  -V  --version\t\t\t"
             "Display the program version.\n");
