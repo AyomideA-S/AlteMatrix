@@ -1,8 +1,5 @@
 /* 
 IPv4 Address Analyzer by AyomideA-S (https://github.com/AyomideA-S)
-NOTE: This code includes knowledge acquired from David Bombal's "Ethical Hacking for Beginners" course on Udemy!
-You can access the course at: 
-https://www.udemy.com/course/pratcical-ethical-hacking-for-beginners/?src=sac&kw=Ethical+hacking+for+beginner
 */
 
 #include <stdio.h>
@@ -44,6 +41,7 @@ int main(int argc, char *argv[]){
     int file_flag = 0;
     int opt;
 
+    // struct for argument flags
     struct option longopts[] = {
         { "help", no_argument, NULL, 'h' },
         { "version", no_argument, NULL, 'V' },
@@ -54,6 +52,7 @@ int main(int argc, char *argv[]){
         { 0, 0, NULL, 0 }
     };
 
+    // parsing arguments and options/flags
     while((opt = getopt_long(argc, argv, "hVi:s:c:f::", longopts, 0)) != -1 ){
         switch(opt){
         case 'h':
@@ -124,7 +123,7 @@ int main(int argc, char *argv[]){
     
         
 
-    present_ip(ip, ipv4, file);
+    present_ip(ip, ipv4, subnets, file);
     if(subnet != "")
         zero = present_subnet(subnet, subnets, file);
     if(cidr != -1)

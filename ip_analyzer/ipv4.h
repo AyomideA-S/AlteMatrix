@@ -1,8 +1,5 @@
 /* 
 IPv4 Address Analyzer by AyomideA-S (https://github.com/AyomideA-S)
-NOTE: This code includes knowledge acquired from David Bombal's "Ethical Hacking for Beginners" course on Udemy!
-You can access the course at: 
-https://www.udemy.com/course/pratcical-ethical-hacking-for-beginners/?src=sac&kw=Ethical+hacking+for+beginner
 */
 
 #include <stdlib.h>
@@ -90,11 +87,11 @@ char get_class(int *ipv4) {
 
 
 // function to present the output in predefined format
-void present_ip(char* ip, int *ipv4, FILE *stream){
+void present_ip(char* ip, int *ipv4, int* subnets, FILE *stream){
     char BINARY[9] = {0,0,0,0,0,0,0,0,'\0'};
 
     // plain ipv4 format
-    fprintf(stream, "\n %19s IPv4 %19s\n|", " "," ");
+    fprintf(stream, "\n %12s IPv4: %s%9s\n|", " ", ip, " ");
     for(int i = 0; i < 43; i++) {
         fprintf(stream, "-");
     }
@@ -125,7 +122,7 @@ void present_ip(char* ip, int *ipv4, FILE *stream){
 int present_subnet(char *subnet, int *subnets, FILE *stream){
     char BINARY[9] = {0,0,0,0,0,0,0,0,'\0'};
 
-    fprintf(stream, "%16s Subnet mask %16s\n", " "," ");
+    fprintf(stream, "%8s Subnet mask: %s%9s\n", " ", subnet, " ");
     fprintf(stream, "|");
     for(int i = 0; i < 43; i++) {
         fprintf(stream, "-");
@@ -216,8 +213,15 @@ int summarize(char* ip, int *ipv4, int *subnets, int zero, FILE *stream){
     for(int i = 0; i < 43; i++){
         fprintf(stream, "-");
     }
+    if(subnets[0] != -1){
+        fprintf(stream, "\nNetwork Address: ");
+        for(int i = 0; i < 3; i++) {
+            fprintf(stream, "%d.", ipv4[i] & subnets[i]);
+        } fprintf(stream, "%d\n", ipv4[3] & subnets[3]);
+    } else {
+        fprintf(stream, "\nNetwork Address: %s\n", ip);
+    }
     
-    fprintf(stream, "\nNetwork Address: %s\n", ip);
     fprintf(stream, "Class: %c\n", class);
 
     if(zero != 4){
