@@ -92,22 +92,21 @@ int main(int argc, char *argv[]){
     format_ip(ip, ipv4);
     if(subnet != "")
         format_subnet(subnet, subnets);
-    int flag = validate_input(ipv4, subnet, subnets, cidr);
 
-    switch(flag) {
-        case 1:
+    switch(validate_input(ipv4, subnet, subnets, cidr)) {
+        case WRONG_IP:
             fprintf(stderr, "Error: Wrong IPv4 format provided!");
             exit(EXIT_FAILURE);
-        case 10:
+        case WRONG_SUBNET:
             fprintf(stderr, "Error: Wrong subnet format provided!");
             exit(EXIT_FAILURE);
-        case 11:
+        case INVALID_IP:
             fprintf(stderr, "Error: Invalid IPV4 address provided!");
             exit(EXIT_FAILURE);
-        case 100:
+        case INVALID_SUBNET:
             fprintf(stderr, "Error: Invalid subnet address provided!");
             exit(EXIT_FAILURE);
-        case 3:
+        case INVALID_CIDR:
             fprintf(stderr, "Error: Invalid CIDR mask provided!");
             exit(EXIT_FAILURE);
     }

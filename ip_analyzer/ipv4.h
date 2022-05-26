@@ -2,6 +2,12 @@
 IPv4 Address Analyzer by AyomideA-S (https://github.com/AyomideA-S)
 */
 
+#define WRONG_IP 1
+#define WRONG_SUBNET 2
+#define INVALID_IP 3
+#define INVALID_SUBNET 4
+#define INVALID_CIDR 5
+
 #include <stdlib.h>
 int subnet_flag = 0;
 int cidr_flag = -1;
@@ -19,27 +25,27 @@ char *MASKS[33] = {"0.0.0.0", "128.0.0.0", "192.0.0.0", "224.0.0.0", "240.0.0.0"
 int validate_input(int *ipv4, char *subnet, int *subnets, int cidr) {
     for(int i = 0; i < 4; i++) {
         if(ipv4[i] == -1)
-            return 1;
+            return WRONG_IP;
     }
     for(int i = 0; i < 4; i++) {
         if(ipv4[i] > 255 || ipv4[i] < 0)
-            return 11;
+            return INVALID_IP;
     }
 
     if(subnet != ""){
         for(int i = 0; i < 4; i++) {
             if(subnets[i] == -1)
-                return 10;
+                return WRONG_SUBNET;
         }
         for(int i = 0; i < 4; i++) {
             if(subnets[i] > 255 || subnets[i] < 0)
-                return 100;
+                return INVALID_SUBNET;
         }
         subnet_flag = 1;
     }
     
     if(cidr != -1){
-        if(cidr > 32 || cidr < 0) return 3;
+        if(cidr > 32 || cidr < 0) return INVALID_CIDR;
         cidr_flag = 1;
     }
     return 0;
