@@ -28,9 +28,10 @@ int main(int argc, char *argv[]){
     // for (int i = 0; i < argc; i++){
     //     printf("argv[%d]: %s\n", i, argv[i]);
     // }
+
     FILE *file = NULL;
 
-    char* ip = "";
+    char* ip = NULL;
     char* subnet = "";
     int ipv4[4] = {-1, -1, -1, -1}, subnets[4] = {-1, -1, -1, -1};
     int zero = 4;
@@ -39,55 +40,35 @@ int main(int argc, char *argv[]){
 
     char filename[256];
     int file_flag = 0;
-    int opt;
 
-    // struct for argument flags
-    struct option longopts[] = {
-        { "help", no_argument, NULL, 'h' },
-        { "version", no_argument, NULL, 'V' },
-        { "ip", required_argument, NULL, 'i' },
-        { "subnet", required_argument, NULL, 's' },
-        { "cidr", required_argument, NULL, 'c' },
-        { "file", optional_argument, NULL, 'f' },
-        { 0, 0, NULL, 0 }
-    };
-
-    // parsing arguments and options/flags
-    while((opt = getopt_long(argc, argv, "hVi:s:c:f::", longopts, 0)) != -1 ){
-        switch(opt){
-        case 'h':
-            print_usage(stdout, argv[0]);
-            exit(EXIT_SUCCESS);
-        case 'V':
-            printf("AlteMatrix %s [Version %s %s]\n", IPv4.name, IPv4.version, IPv4.development_stage);
-            exit(EXIT_SUCCESS);
-        case 'i':
-            ip = optarg;
-            break;
-        case 's':
-            subnet = optarg;
-            break;
-        case 'c':
-            cidr = atoi(optarg);
-            break;
-        case 'f':
-            strncpy(filename, (optarg) ? optarg : "ipanalysis.txt", sizeof (filename));
-            filename[sizeof(filename) - 1] = '\0';
-            file_flag = 1;
-            break;
-        default:
-            fprintf(stderr, "Usage: %s  -i|--ip <IPv4_address> [-s|--subnet <subnet_mask>] [-c|--cidr <CIDR_mask>] [-f\"<filepath>\"|--file=<filepath>] [-h|--help] [-V|--version]\n", argv[0]);
-            exit(EXIT_FAILURE);
+    // if no arguments are given, print usage and exit
+    if(argc == 1){
+        fprintf(stdout, "\nIPv6 Address Analyzer by Ayomide A-S (https://github.com/AyomideA-S)\n");
+        fprintf(stdout, "AlteMatrix %s [Version %s %s]\n\n", IPv4.name, IPv4.version, IPv4.development_stage);
+        print_usage(stdout, argv[0]);
+    }
+    // if the user has given arguments, process them
+    else{
+        if(argv[1][0] == '-'){
+                parse_args(argc, argv, ip, subnet, &cidr, filename, &file_flag);
+        } else {
+        // stores the IPv4 address as it is in the input
+        ip = malloc(strlen(argv[1]) + 1);
+        strcpy(ip, argv[1]);
+        optind++;
         }
     }
 
-    // for debugging purposes
-    // printf("argc=%d optind=%d\n", argc, optind);
+    parse_args(argc, argv, ip, subnet, &cidr, filename, &file_flag);
 
-    if (optind < argc) {
-        fprintf(stderr, "Expected argument after options\n");
-        exit(EXIT_FAILURE);
-    }
+    if(file_flag == 1) {
+        file = fopen(filename, "w");
+
+        if(!file){
+            fprintf(stderr, "Error: File could not be created!");
+            exit(EXIT_FAILURE);
+        }
+    } else {file = stdout;}
 
     format_ip(ip, ipv4);
     if(subnet != "")
@@ -110,17 +91,6 @@ int main(int argc, char *argv[]){
             fprintf(stderr, "Error: Invalid CIDR mask provided!");
             exit(EXIT_FAILURE);
     }
-
-    if(file_flag == 1) {
-        file = fopen(filename, "w");
-
-        if(!file){
-            fprintf(stderr, "Error: File could not be created!");
-            exit(EXIT_FAILURE);
-        }
-    } else {file = stdout;}
-    
-        
 
     present_ip(ip, ipv4, subnets, file);
     if(subnet != "")

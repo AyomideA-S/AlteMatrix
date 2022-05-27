@@ -19,7 +19,68 @@ char *MASKS[33] = {"0.0.0.0", "128.0.0.0", "192.0.0.0", "224.0.0.0", "240.0.0.0"
     "255.255.255.0", "255.255.255.128", "255.255.255.192", "255.255.255.224", "255.255.255.240", "255.255.255.248", 
     "255.255.255.252", "255.255.255.254", "255.255.255.255"};
 
+// print help
+void print_usage (FILE* stream, char *program_path){
+    const char *program_name = strrchr(program_path, '/');
+    program_name = program_name ? program_name + 1 : program_path;
+    fprintf(stream, "Usage:  %s <IPv4_address> [OPTIONS]\n", program_name);
+    fprintf(stream,
+            "  -h  --help\t\t\t" "Display this usage information and exit.\n"
+            "  -s  --subnet <subnet>\t\t" "Takes IPv4 subnet address.\n"
+            "  -c  --cidr <CIDR_mask>\t" "Takes IPv4 CIDR mask.\n"
+            "  -f  --file=[FILENAME]\t\t" "Write all output to a file (defaults to ipanalysis.txt).\n"
+            "  -V  --version\t\t\t"
+            "Display the program version.\n");
+    exit(EXIT_SUCCESS);
+}
 
+// function to parse the input and possible argument flags
+void parse_args(int argc, char *argv[], char *ip, char *subnet, int *cidr, char *file_name, int *file_flag){
+    int opt;
+    // struct to define argument flags
+    struct option longopts[] = {
+        { "help", no_argument, NULL, 'h' },
+        { "version", no_argument, NULL, 'V' },
+        { "subnet", required_argument, NULL, 's' },
+        { "cidr", required_argument, NULL, 'c' },
+        { "file", optional_argument, NULL, 'f' },
+        { 0, 0, NULL, 0 }
+    };
+
+    // parsing arguments and options/flags
+    while((opt = getopt_long(argc, argv, "hVi:s:c:f::", longopts, 0)) != -1 ){
+        switch(opt){
+        case 'h':
+            print_usage(stdout, argv[0]);
+            exit(EXIT_SUCCESS);
+        case 'V':
+            printf("AlteMatrix %s [Version %s %s]\n", IPv4.name, IPv4.version, IPv4.development_stage);
+            exit(EXIT_SUCCESS);
+        case 's':
+            subnet = optarg;
+            break;
+        case 'c':
+            *cidr = atoi(optarg);
+            break;
+        case 'f':
+            strncpy(file_name, (optarg) ? optarg : "ipanalysis.txt", sizeof (file_name));
+            file_name[sizeof(file_name) - 1] = '\0';
+            *file_flag = 1;
+            break;
+        default:
+            fprintf(stderr, "Usage:  %s <IPv4_address> [-s|--subnet <subnet_mask>] [-c|--cidr <CIDR_mask>] [-f\"<filepath>\"|--file=<filepath>] [-h|--help] [-V|--version]\n", argv[0]);
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    // for debugging purposes
+    // printf("argc=%d optind=%d\n", argc, optind);
+
+    if (optind < argc) {
+        fprintf(stderr, "Expected argument after options\n");
+        exit(EXIT_FAILURE);
+    }
+}
 
 // function to validate user input
 int validate_input(int *ipv4, char *subnet, int *subnets, int cidr) {
@@ -51,8 +112,6 @@ int validate_input(int *ipv4, char *subnet, int *subnets, int cidr) {
     return 0;
 }
 
-
-
 // decimal to binary
 int decimal_to_binary(int index, int val, char *BINARY, int zero) {
     for(int i = 0; i < 8; i++){
@@ -79,8 +138,6 @@ int decimal_to_binary(int index, int val, char *BINARY, int zero) {
     return zero;
 }
 
-
-
 // function to get the class of the IPv4 network
 char get_class(int *ipv4) {
     if(ipv4[0] < 128) return 'A';
@@ -89,8 +146,6 @@ char get_class(int *ipv4) {
     else if(ipv4[0] < 240) return 'D';
     else return 'E';
 }
-
-
 
 // function to present the output in predefined format
 void present_ip(char* ip, int *ipv4, int* subnets, FILE *stream){
@@ -259,21 +314,4 @@ void yes_subnet(char *subnet, int focal, FILE *stream){
 void yes_cidr(int cidr, FILE *stream){
     fprintf(stream, "Classless Inter-Domain Routing mask: /%d\n", cidr);
     fprintf(stream, "Subnet mask: %s\n", MASKS[cidr - 1]);
-}
-
-// print help
-void print_usage (FILE* stream, char *program_path)
-{
-    const char *program_name = strrchr(program_path, '/');
-    program_name = program_name ? program_name + 1 : program_path;
-    fprintf (stream, "Usage:  %s -i|--ip <IPv4_address> [OPTIONS]\n", program_name);
-    fprintf (stream,
-            "  -h  --help\t\t\t" "Display this usage information and exit.\n"
-            "  -i  --ip <IPv4_address>\t" "Takes IPv4 address.\n"
-            "  -s  --subnet <subnet>\t\t" "Takes IPv4 subnet address.\n"
-            "  -c  --cidr <CIDR_mask>\t" "Takes IPv4 CIDR mask.\n"
-            "  -f  --file=[FILENAME]\t\t" "Write all output to a file (defaults to ipanalysis.txt).\n"
-            "  -V  --version\t\t\t"
-            "Display the program version.\n");
-    exit(EXIT_SUCCESS);
 }
