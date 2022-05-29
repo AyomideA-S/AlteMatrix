@@ -14,15 +14,20 @@ cd AlteMatrix
 ## Build
 
 ```bash
-gcc ip_analyzer\<program_name>.c -o <output_name>
+gcc altematrix.c -o altematrix
 ```
 
 or
 
 ```bash
-clang -o <output_name> ip_analyzer\<program_name>.c
+clang altematrix.c -o altematrix 
 ```
 
-Issues, suggestions and feedback are welcomed.
+## Usage
 
-**You are also free to contact me to collaborate.**
+```bash
+altematrix --help
+altematrix command [options]
+```
+
+**Issues, suggestions and contributions are also welcomed.**

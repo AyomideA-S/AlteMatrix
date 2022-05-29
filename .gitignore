@@ -53,3 +53,5 @@ dkms.conf
 
 # Excluding any licenses for now
 LICENSE
+
+.vscode/

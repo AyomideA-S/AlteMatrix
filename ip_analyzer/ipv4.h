@@ -1,5 +1,5 @@
 /* 
-IPv4 Address Analyzer by AyomideA-S (https://github.com/AyomideA-S)
+IPv6 Address Analyzer by AyomideA-S (https://github.com/AyomideA-S)
 */
 
 #define WRONG_IP 1
@@ -8,7 +8,27 @@ IPv4 Address Analyzer by AyomideA-S (https://github.com/AyomideA-S)
 #define INVALID_SUBNET 4
 #define INVALID_CIDR 5
 
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <math.h>
+#include <getopt.h>
+
+#ifdef PROGRAM_NAME
+#undef PROGRAM_NAME
+#define PROGRAM_NAME "IPv4"
+#endif
+#ifdef PROGRAM_VERSION
+#undef PROGRAM_VERSION
+#define PROGRAM_VERSION "0.1.0"
+#endif
+#ifdef PROGRAM_DEVELOPMENT_STAGE
+#undef PROGRAM_DEVELOPMENT_STAGE
+#define PROGRAM_DEVELOPMENT_STAGE "beta"
+#endif
+
+
+
 int subnet_flag = 0;
 int cidr_flag = -1;
 
@@ -20,7 +40,7 @@ char *MASKS[33] = {"0.0.0.0", "128.0.0.0", "192.0.0.0", "224.0.0.0", "240.0.0.0"
     "255.255.255.252", "255.255.255.254", "255.255.255.255"};
 
 // print help
-void print_usage (FILE* stream, char *program_path){
+void print_usage_ipv4 (FILE* stream, char *program_path){
     const char *program_name = strrchr(program_path, '/');
     program_name = program_name ? program_name + 1 : program_path;
     fprintf(stream, "Usage:  %s <IPv4_address> [OPTIONS]\n", program_name);
@@ -35,7 +55,7 @@ void print_usage (FILE* stream, char *program_path){
 }
 
 // function to parse the input and possible argument flags
-void parse_args(int argc, char *argv[], char *ip, char *subnet, int *cidr, char *file_name, int *file_flag){
+void parse_args_ipv4(int argc, char *argv[], char *ip, char *subnet, int *cidr, char *file_name, int *file_flag){
     int opt;
     // struct to define argument flags
     struct option longopts[] = {
@@ -51,10 +71,10 @@ void parse_args(int argc, char *argv[], char *ip, char *subnet, int *cidr, char 
     while((opt = getopt_long(argc, argv, "hVi:s:c:f::", longopts, 0)) != -1 ){
         switch(opt){
         case 'h':
-            print_usage(stdout, argv[0]);
+            print_usage_ipv4(stdout, argv[0]);
             exit(EXIT_SUCCESS);
         case 'V':
-            printf("AlteMatrix %s [Version %s %s]\n", IPv4.name, IPv4.version, IPv4.development_stage);
+            printf("AlteMatrix %s [Version %s %s]\n", PROGRAM_NAME, PROGRAM_VERSION, PROGRAM_DEVELOPMENT_STAGE);
             exit(EXIT_SUCCESS);
         case 's':
             subnet = optarg;
@@ -82,8 +102,17 @@ void parse_args(int argc, char *argv[], char *ip, char *subnet, int *cidr, char 
     }
 }
 
+// function to format the input in useable format
+void format_ipv4(char *ip, int *ipv4){
+    sscanf(ip, "%d.%d.%d.%d", &ipv4[0], &ipv4[1], &ipv4[2], &ipv4[3]);
+}
+// function to format the input in useable format
+void format_subnet(char* subnet, int *subnets){
+    sscanf(subnet, "%d.%d.%d.%d", &subnets[0], &subnets[1], &subnets[2], &subnets[3]);
+}
+
 // function to validate user input
-int validate_input(int *ipv4, char *subnet, int *subnets, int cidr) {
+int validate_ipv4(int *ipv4, char *subnet, int *subnets, int cidr) {
     for(int i = 0; i < 4; i++) {
         if(ipv4[i] == -1)
             return WRONG_IP;
@@ -226,7 +255,7 @@ void present_cidr(int cidr, FILE *stream){
 
 // present the summary
 int summarize(char* ip, int *ipv4, int *subnets, int zero, FILE *stream){
-    char class;
+    char Class;
     char alpha[16];
     char delta[16];
     char gamma[16];
@@ -268,7 +297,7 @@ int summarize(char* ip, int *ipv4, int *subnets, int zero, FILE *stream){
             sprintf(gamma, "%d.%d.%d.%d", ipv4[0], ipv4[1], ipv4[2], ipv4[3]);
         }
     }
-    class = get_class(ipv4);
+    Class = get_class(ipv4);
 
     fprintf(stream, "\nSummary\n");
     for(int i = 0; i < 43; i++){
@@ -283,7 +312,7 @@ int summarize(char* ip, int *ipv4, int *subnets, int zero, FILE *stream){
         fprintf(stream, "\nNetwork Address: %s\n", ip);
     }
     
-    fprintf(stream, "Class: %c\n", class);
+    fprintf(stream, "Class: %c\n", Class);
 
     if(zero != 4){
         fprintf(stream, "Directed Broadcast Address: %s\n", delta);
@@ -314,4 +343,93 @@ void yes_subnet(char *subnet, int focal, FILE *stream){
 void yes_cidr(int cidr, FILE *stream){
     fprintf(stream, "Classless Inter-Domain Routing mask: /%d\n", cidr);
     fprintf(stream, "Subnet mask: %s\n", MASKS[cidr - 1]);
+}
+
+
+
+// main program function
+int ipv4(int argc, char *argv[]){
+    // for debugging purposes
+    // for (int i = 0; i < argc; i++){
+    //     printf("argv[%d]: %s\n", i, argv[i]);
+    // }
+
+    FILE *file = NULL;
+
+    char* ip = NULL;
+    char* subnet = "";
+    int ipv4[4] = {-1, -1, -1, -1}, subnets[4] = {-1, -1, -1, -1};
+    int zero = 4;
+    int cidr = -1;
+    int focal;
+
+    char filename[256];
+    int file_flag = 0;
+
+    // if no arguments are given, print usage and exit
+    if(argc == 2){
+        fprintf(stdout, "\nIPv4 Address Analyzer by Ayomide A-S (https://github.com/AyomideA-S)\n");
+        fprintf(stdout, "AlteMatrix %s [Version %s %s]\n\n", PROGRAM_NAME, PROGRAM_VERSION, PROGRAM_DEVELOPMENT_STAGE);
+        print_usage_ipv4(stdout, argv[0]);
+    }
+    // if the user has given arguments, process them
+    else{
+        if(argv[2][0] == '-'){
+            parse_args_ipv4(argc, argv, ip, subnet, &cidr, filename, &file_flag);
+        } else {
+            // stores the IPv4 address as it is in the input
+            ip = (char *)malloc(strlen(argv[1]) + 1);
+            strcpy(ip, argv[1]);
+            optind++;
+        }
+    }
+
+    parse_args_ipv4(argc, argv, ip, subnet, &cidr, filename, &file_flag);
+
+    if(file_flag == 1) {
+        file = fopen(filename, "w");
+
+        if(!file){
+            fprintf(stderr, "Error: File could not be created!");
+            exit(EXIT_FAILURE);
+        }
+    } else {file = stdout;}
+
+    format_ipv4(ip, ipv4);
+    if(subnet != "")
+        format_subnet(subnet, subnets);
+
+    switch(validate_ipv4(ipv4, subnet, subnets, cidr)) {
+        case WRONG_IP:
+            fprintf(stderr, "Error: Wrong IPv4 format provided!");
+            exit(EXIT_FAILURE);
+        case WRONG_SUBNET:
+            fprintf(stderr, "Error: Wrong subnet format provided!");
+            exit(EXIT_FAILURE);
+        case INVALID_IP:
+            fprintf(stderr, "Error: Invalid IPV4 address provided!");
+            exit(EXIT_FAILURE);
+        case INVALID_SUBNET:
+            fprintf(stderr, "Error: Invalid subnet address provided!");
+            exit(EXIT_FAILURE);
+        case INVALID_CIDR:
+            fprintf(stderr, "Error: Invalid CIDR mask provided!");
+            exit(EXIT_FAILURE);
+    }
+
+    present_ip(ip, ipv4, subnets, file);
+    if(subnet != "")
+        zero = present_subnet(subnet, subnets, file);
+    if(cidr != -1)
+        present_cidr(cidr, file);
+    focal = summarize(ip, ipv4, subnets, zero, file);
+    if(subnet != "")
+        yes_subnet(subnet, focal, file);
+    if(cidr != -1)
+        yes_cidr(cidr, file);
+
+    if(file)
+        fclose(file);
+
+    exit(EXIT_SUCCESS);
 }

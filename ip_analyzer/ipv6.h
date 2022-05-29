@@ -10,10 +10,29 @@ IPv6 Address Analyzer by AyomideA-S (https://github.com/AyomideA-S)
 #define BAD_IP_ZONE -3
 #define BAD_CIDR -4
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <math.h>
+#include <getopt.h>
+
+#ifdef PROGRAM_NAME
+#undef PROGRAM_NAME
+#define PROGRAM_NAME "IPv6"
+#endif
+#ifdef PROGRAM_VERSION
+#undef PROGRAM_VERSION
+#define PROGRAM_VERSION "0.1.0"
+#endif
+#ifdef PROGRAM_DEVELOPMENT_STAGE
+#undef PROGRAM_DEVELOPMENT_STAGE
+#define PROGRAM_DEVELOPMENT_STAGE "beta"
+#endif
+
+
 
 // print help
-void print_usage (FILE* stream, char *program_path){
+void print_usage_ipv6 (FILE* stream, char *program_path){
     const char *program_name = strrchr(program_path, '/');
     program_name = program_name ? program_name + 1 : program_path;
     fprintf(stream, "Usage:  %s <IPv6_address> [OPTIONS]\n", program_name);
@@ -30,7 +49,7 @@ void print_usage (FILE* stream, char *program_path){
 }
 
 // function to parse the input and possible argument flags
-void parse_args(int argc, char *argv[], char *ip, int *cidr, char *file_name, int *analyze_flag, int *execute_flag, int *file_flag){
+void parse_args_ipv6(int argc, char *argv[], char *ip, int *cidr, char *file_name, int *analyze_flag, int *execute_flag, int *file_flag){
     int opt;
     // struct to define argument flags
     struct option longopts[] = {
@@ -48,10 +67,10 @@ void parse_args(int argc, char *argv[], char *ip, int *cidr, char *file_name, in
     while((opt = getopt_long(argc, argv, "hVc:aevf::", longopts, 0)) != -1 ){
         switch(opt){
         case 'h':
-            print_usage(stdout, argv[0]);
+            print_usage_ipv6(stdout, argv[0]);
             exit(EXIT_SUCCESS);
         case 'V':
-            printf("AlteMatrix %s [Version %s %s]\n", IPv6.name, IPv6.version, IPv6.development_stage);
+            printf("AlteMatrix %s [Version %s %s]\n", PROGRAM_NAME, PROGRAM_VERSION, PROGRAM_DEVELOPMENT_STAGE);
             exit(EXIT_SUCCESS);
         case 'c':
             *cidr = atoi(optarg);
@@ -98,7 +117,7 @@ int *count_octets(char *ip){
         }
     }
     int missing = 8 - count;
-    int* log = malloc(3 * sizeof(int));
+    int* log = (int *)malloc(3 * sizeof(int));
     log[0] = count; 
     log[1] = missing;
     log[2] = missing_index + 1;
@@ -123,8 +142,54 @@ void process(char* hex, char* digits){
     }
 }
 
+// function to format the input in useable format
+void format_ipv6(char *ip, char **ipv6, int* dec, int *zone_index, char **expansion, int *log){
+    int trash;
+    // attempt to resize or reshape the IPv6 address
+    if(log[0] != 8){
+        char makespace[44] = "";
+        int writer = 0;
+        int x = 0;
+        for(int i = 0; i < log[2]; i++){
+            if(ip[i] != ':'){
+                makespace[writer] = ip[i];
+                x++;
+            } else {
+                makespace[writer] = ':';
+                x = 0;
+            }
+            writer++;
+        }
+        for(int i = log[1]; i > 0; i--){
+            makespace[writer++] = '0';
+            makespace[writer++] = ':';
+        }
+        for (int i = log[2] + 1; i < strlen(ip); i++){
+            makespace[writer] = ip[i];
+            writer++;
+        }
+        // stores the hexadecimal values of the IPv6 address as they are in the input
+        sscanf(makespace, "%x:%x:%x:%x:%x:%x:%x:%x%%%d", &ipv6[0], &ipv6[1], &ipv6[2], &ipv6[3], &ipv6[4], &ipv6[5], &ipv6[6], &ipv6[7], zone_index);
+        // stores the decimal values of the IPv6 address as they are in the input
+        sscanf(makespace, "%x:%x:%x:%x:%x:%x:%x:%x%%%d", &dec[0], &dec[1], &dec[2], &dec[3], &dec[4], &dec[5], &dec[6], &dec[7], &trash);
+    } else{
+        // stores the hexadecimal values of the IPv6 address as they are in the input
+        sscanf(ip, "%x:%x:%x:%x:%x:%x:%x:%x%%%d", &ipv6[0], &ipv6[1], &ipv6[2], &ipv6[3], &ipv6[4], &ipv6[5], &ipv6[6], &ipv6[7], zone_index);
+        // stores the decimal values of the IPv6 address as they are in the input
+        sscanf(ip, "%x:%x:%x:%x:%x:%x:%x:%x%%%d", &dec[0], &dec[1], &dec[2], &dec[3], &dec[4], &dec[5], &dec[6], &dec[7], &trash);
+    }
+
+    // expands the IPv6 address and stores it in expansion
+    for(int i=0; i<8; i++){
+        char digits[5];
+        process(ipv6[i], digits);
+        expansion[i] = malloc(strlen(digits) + 1);
+        strcpy(expansion[i], digits);
+    }
+}
+
 // function to validate the IPv6 address
-int validate_input(char *ip, char **ipv6, int* dec, int zone_index, int cidr){
+int validate_ipv6(char *ip, char **ipv6, int* dec, int zone_index, int cidr){
     int count = 0;
     
     for(int i=0; i<strlen(ip); i++){
@@ -232,4 +297,100 @@ void analyze(FILE* stream, char* ip, char** ipv6, char** expansion, int zone_ind
     fprintf(stream, "Number of supported Hosts: %d\n", supported_hosts);
     long double total = pow(2, 64) * pow(2, (double)hosts);
     fprintf(stream, "Number of addresses: %.0Lf\n", total);
+}
+
+
+
+// main program function
+int ipv6(int argc, char *argv[]){
+    // // for debugging purposes
+    // for (int i = 0; i < argc; i++){
+    //     printf("argv[%d]: %s\n", i, argv[i]);
+    // }
+
+    FILE *file = NULL;
+
+    char *ip = NULL;
+    char *ipv6[8];
+    unsigned int dec[8];
+    char** expansion = malloc(8 * sizeof(char *));
+    int zone_index = -1;
+    int* ptr = &zone_index;
+    int cidr = -1;
+
+    char file_name[256];
+    int file_flag = 0;
+    int execute_flag = 0;
+    int analyze_flag = 0;
+
+    // if no arguments are given, print usage and exit
+    if(argc == 2){
+        fprintf(stdout, "\nIPv6 Address Analyzer by Ayomide A-S (https://github.com/AyomideA-S)\n");
+        fprintf(stdout, "AlteMatrix %s [Version %s %s]\n\n", PROGRAM_NAME, PROGRAM_VERSION, PROGRAM_DEVELOPMENT_STAGE);
+        print_usage_ipv6(stdout, argv[0]);
+    }
+    // if the user has given arguments, process them
+    else{
+        if(argv[2][0] == '-'){
+            parse_args_ipv6(argc, argv, ip, &cidr, file_name, &analyze_flag, &execute_flag, &file_flag);
+        } else {
+            // stores the IPv6 address as it is in the input
+            ip = malloc(strlen(argv[1]) + 1);
+            strcpy(ip, argv[1]);
+            optind++;
+        }
+    }
+
+    parse_args_ipv6(argc, argv, ip, &cidr, file_name, &analyze_flag, &execute_flag, &file_flag);
+
+    // checks for a valid filename
+    if(file_flag == 1) {
+        file = fopen(file_name, "w");
+
+        if(!file){
+            fprintf(stderr, "Error: File could not be created!");
+            exit(EXIT_FAILURE);
+        }
+    } else {file = stdout;}
+
+    // execution starts here
+    format_ipv6(ip, ipv6, dec, ptr, expansion, count_octets(ip));
+
+    switch(validate_ipv6(ip, ipv6, dec, zone_index, cidr)) {
+        case BAD_IP_FORMAT:
+            fprintf(stderr, "Error: Wrong IPv6 format provided!");
+            exit(EXIT_FAILURE);
+        case BAD_IP_ADDRESS:
+            fprintf(stderr, "Error: Invalid IPV6 address provided!");
+            exit(EXIT_FAILURE);
+        case BAD_IP_ZONE:
+            fprintf(stderr, "Error: Invalid zone index provided!");
+            exit(EXIT_FAILURE);
+        case BAD_CIDR:
+            fprintf(stderr, "Error: Invalid CIDR mask provided!");
+            exit(EXIT_FAILURE);
+    }
+
+    switch(execute_flag){
+        case ABBREVIATE_IPV6_ADDRESSES:
+            shrink(ipv6, dec);
+            break;
+        case EXPAND_IPV6_ADDRESSES:
+            expand(expansion);
+            break;
+        default:
+            expand(expansion);
+            break;
+    }
+
+    if(analyze_flag == 1){
+        if(cidr == -1)
+            cidr = 0;
+        analyze(file, ip, ipv6, expansion, zone_index, cidr);
+    }
+
+    if(file)
+        fclose(file);
+
+    exit(EXIT_SUCCESS);
 }
